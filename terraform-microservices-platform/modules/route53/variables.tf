@@ -4,7 +4,7 @@ variable "hosted_zone_id" {
 }
 
 variable "api_domain_name" {
-  description = "API domain name"
+  description = "Domain name for the API"
   type        = string
 }
 
@@ -14,6 +14,6 @@ variable "alb_dns_name" {
 }
 
 variable "alb_zone_id" {
-  description = "ALB zone ID"
+  description = "ALB hosted zone ID"
   type        = string
 }

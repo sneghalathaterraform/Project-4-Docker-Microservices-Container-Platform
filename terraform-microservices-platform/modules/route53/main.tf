@@ -1,5 +1,10 @@
+# Get the hosted zone
+data "aws_route53_zone" "main" {
+  zone_id = var.hosted_zone_id
+}
+
+# A record pointing to ALB
 resource "aws_route53_record" "api" {
-  count   = var.hosted_zone_id != "" ? 1 : 0
   zone_id = var.hosted_zone_id
   name    = var.api_domain_name
   type    = "A"

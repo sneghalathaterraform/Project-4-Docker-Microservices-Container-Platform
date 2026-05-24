@@ -6,7 +6,7 @@
   ],
   "cpu": "256",
   "memory": "512",
-  "executionRoleArn": "arn:aws:iam:462096274659:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::462096274659:role/ecsTaskExecutionRole",
   "containerDefinitions": [
     {
       "name": "orders-service",

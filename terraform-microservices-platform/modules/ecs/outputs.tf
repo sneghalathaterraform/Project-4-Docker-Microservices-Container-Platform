@@ -1,15 +1,3 @@
-output "ecs_cluster_id" {
-  value = aws_ecs_cluster.main.id
-}
-
-output "ecs_cluster_name" {
-  value = aws_ecs_cluster.main.name
-}
-
-output "orders_service_name" {
-  value = aws_ecs_service.orders.name
-}
-
-output "sales_service_name" {
-  value = aws_ecs_service.sales.name
-}
+output "ecs_cluster_name" { value = aws_ecs_cluster.main.name }
+output "orders_service_name" { value = aws_ecs_service.orders.name }
+output "sales_service_name" { value = aws_ecs_service.sales.name }
