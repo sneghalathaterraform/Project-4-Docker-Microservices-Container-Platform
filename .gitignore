@@ -12,6 +12,13 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+target/
+*.jar
+
 # IDE
 .vscode/
 .idea/
