@@ -1,0 +1,101 @@
+name: Project-4 ECS Microservices Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: 462096274659
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup Java 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Login to ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Create ECR Repositories if Not Exists
+      run: |
+        aws ecr create-repository --repository-name orders-service \
+          --region ${{ env.AWS_REGION }} || true
+        aws ecr create-repository --repository-name sales-service \
+          --region ${{ env.AWS_REGION }} || true
+
+    - name: Build and Push Orders Service
+      working-directory: terraform-microservices-platform/services/orders
+      run: |
+        mvn clean package -DskipTests
+        docker build --platform linux/amd64 -t orders-service:latest .
+        docker tag orders-service:latest \
+          ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/orders-service:latest
+        docker push \
+          ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/orders-service:latest
+
+    - name: Build and Push Sales Service
+      working-directory: terraform-microservices-platform/services/sales
+      run: |
+        mvn clean package -DskipTests
+        docker build --platform linux/amd64 -t sales-service:latest .
+        docker tag sales-service:latest \
+          ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/sales-service:latest
+        docker push \
+          ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/sales-service:latest
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      working-directory: terraform-microservices-platform
+      run: terraform init
+
+    - name: Terraform Plan
+      working-directory: terraform-microservices-platform
+      run: terraform plan -var="orders_image_url=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/orders-service:latest" -var="sales_image_url=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/sales-service:latest"
+
+    - name: Terraform Apply
+      working-directory: terraform-microservices-platform
+      run: terraform apply -auto-approve -var="orders_image_url=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/orders-service:latest" -var="sales_image_url=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/sales-service:latest"
+
+    - name: Force ECS Redeployment
+      run: |
+        aws ecs update-service \
+          --cluster microservices-cluster \
+          --service orders-service \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+        aws ecs update-service \
+          --cluster microservices-cluster \
+          --service sales-service \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Wait for Services to Stabilize
+      run: |
+        aws ecs wait services-stable \
+          --cluster microservices-cluster \
+          --services orders-service sales-service \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Print ALB URL
+      run: |
+        cd terraform-microservices-platform
+        terraform output alb_dns_name
