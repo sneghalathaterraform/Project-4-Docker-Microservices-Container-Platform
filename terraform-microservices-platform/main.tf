@@ -1,3 +1,10 @@
+terraform {
+  backend "s3" {
+    bucket = "sam-deploy-462096274659-us-east-1"
+    key    = "project4/terraform.tfstate"
+    region = "us-east-1"
+  }
+}
 # VPC Module
 module "vpc" {
   source = "./modules/vpc"
@@ -48,4 +55,4 @@ module "autoscaling" {
   sales_service_name  = module.ecs.sales_service_name
 }
 
-# Route53 Module - DISABLED (no hosted
+# Route53 Module - DISABLED (no hosted)
